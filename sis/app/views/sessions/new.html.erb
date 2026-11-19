@@ -1,0 +1,25 @@
+<main>
+  <h1>SIS Administrator Login</h1>
+
+  <% if alert %>
+    <p><%= alert %></p>
+  <% end %>
+
+  <% if notice %>
+    <p><%= notice %></p>
+  <% end %>
+
+  <%= form_with url: sis_login_path, method: :post do |form| %>
+    <div>
+      <%= form.label :username %>
+      <%= form.text_field :username %>
+    </div>
+    <div>
+      <%= form.label :password %>
+      <%= form.password_field :password %>
+    </div>
+    <div>
+      <%= form.submit "Log in" %>
+    </div>
+  <% end %>
+</main>

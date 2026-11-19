@@ -1,0 +1,104 @@
+# frozen_string_literal: true
+
+module Kaminari
+  module PageScopeMethods
+    # Specify the <tt>per_page</tt> value for the preceding <tt>page</tt> scope
+    #   Model.page(3).per(10)
+    def per(num, max_per_page: nil)
+      max_per_page ||= ((defined?(@_max_per_page) && @_max_per_page) || self.max_per_page)
+      # ignore a negative or a non-numeric value, and keep the current per value
+      return self if (n = num.to_i) < 0 || !(/\A\d/ =~ num.to_s)
+
+      per_value = n
+      if n.zero?
+        limit(n)
+      else
+        n = max_per_page if max_per_page && (max_per_page < n)
+        padding_value = (defined?(@_padding) && @_padding) || 0
+        # the current page is unknown after per(0), so go back to the first page
+        page_offset = limit_value.zero? ? 0 : (offset_value - padding_value) / limit_value * n
+        limit_and_offset n, page_offset + padding_value
+      end.tap {|scope| scope.instance_variable_set :@_per, per_value }
+    end
+
+    def max_paginates_per(new_max_per_page)
+      per((defined?(@_per) && @_per) || default_per_page, max_per_page: new_max_per_page).tap do |scope|
+        scope.instance_variable_set :@_max_per_page, new_max_per_page
+      end
+    end
+
+    def padding(num)
+      num = num.to_i
+      raise ArgumentError, "padding must not be negative" if num < 0
+      offset(offset_value + num).tap {|scope| scope.instance_variable_set :@_padding, num }
+    end
+
+    # Total number of pages
+    def total_pages
+      count_without_padding = total_count
+      count_without_padding -= @_padding if defined?(@_padding) && @_padding
+      count_without_padding = 0 if count_without_padding < 0
+
+      total_pages_count = (count_without_padding.to_f / limit_value).ceil
+      max_pages && (max_pages < total_pages_count) ? max_pages : total_pages_count
+    rescue FloatDomainError
+      raise ZeroPerPageOperation, "The number of total pages was incalculable. Perhaps you called .per(0)?"
+    end
+
+    # Current page number
+    def current_page
+      offset_without_padding = offset_value
+      offset_without_padding -= @_padding if defined?(@_padding) && @_padding
+      offset_without_padding = 0 if offset_without_padding < 0
+
+      (offset_without_padding / limit_value) + 1
+    rescue ZeroDivisionError
+      raise ZeroPerPageOperation, "Current page was incalculable. Perhaps you called .per(0)?"
+    end
+
+    # Current per-page number
+    def current_per_page
+      Kaminari.deprecator.warn '#current_per_page is deprecated and will be removed in the next major ' \
+        'version. Please use #limit_value instead.'
+
+      limit_value
+      # (defined?(@_per) && @_per) || default_per_page
+    end
+
+    # Next page number in the collection
+    def next_page
+      current_page + 1 unless last_page? || out_of_range?
+    end
+
+    # Previous page number in the collection
+    def prev_page
+      current_page - 1 unless first_page? || out_of_range?
+    end
+
+    # First page of the collection?
+    def first_page?
+      current_page == 1
+    end
+
+    # Last page of the collection?
+    def last_page?
+      current_page == total_pages
+    end
+
+    # Out of range of the collection?
+    def out_of_range?
+      current_page > total_pages
+    end
+
+    def paginated?
+      limit_value.present?
+    end
+
+    private
+
+    # Returns another scope with the given limit and offset
+    def limit_and_offset(new_limit, new_offset)
+      limit(new_limit).offset(new_offset)
+    end
+  end
+end

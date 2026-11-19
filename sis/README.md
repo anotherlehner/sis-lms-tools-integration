@@ -2,20 +2,57 @@
 
 A simple bare bones SIS system for demonstrating technologies and patterns.
 
+This is an educational local-development application. It uses plain-text passwords and should not be deployed to production.
+
 ## Phase 1
 
-- SQLite database on disk in this folder
-- ruby on rails admin application with 1 users ("admin"), who logs in with a simple plain text password and has rails admin tools to add/edit/delete rows in all the database tables
-- entities
- - courses
- - sections (should link to course)
- - enrollments (should link people to courses as students, store midterm and final grades when the person is a student)
- - instructors (should link people to courses as instructors)
- - grades (for all the activities students will do)
- - people (contains all people that are involved with the system, admin users, students, faculty, and staff)
- - roles (admin/student/instructor/staff roles that can be linked to people)
- - roles_tran (admin/student/instructor/staff roles and their descriptions)
-- simple ruby scripts to reset, recreate, create, migrate the database
-- unit tests
-- as little javascript as possible, try to use none if possible
+- SQLite database stored below this folder
+- Ruby on Rails application with Rails Admin CRUD
+- One seeded administrator with username `admin` and plain-text password `admin`
+- People, courses, sections, enrollments, instructors, grades, roles, and role translations
+- Section-based student enrollments and instructor assignments
+- Midterm and final grade fields on enrollments
+- Activity grade records for student enrollments
+- Minimal server-rendered HTML and no custom JavaScript
+- Minitest model and integration coverage
 
+## Setup
+
+From this folder:
+
+```sh
+bundle install
+ruby bin/create_db.rb
+```
+
+The seeded administrator is `admin` / `admin`.
+
+## Running
+
+```sh
+bundle exec rails server
+```
+
+Open `http://localhost:3000/login`, or go directly to `http://localhost:3000/admin`.
+
+## Database scripts
+
+Run these from this folder:
+
+```sh
+ruby bin/create_db.rb
+ruby bin/migrate_db.rb
+ruby bin/recreate_db.rb
+ruby bin/reset_db.rb
+```
+
+- `create_db.rb` creates, migrates, and seeds the development database.
+- `migrate_db.rb` applies pending migrations.
+- `recreate_db.rb` drops, recreates, migrates, and seeds the database.
+- `reset_db.rb` resets the database through Rails and loads seeds.
+
+## Tests
+
+```sh
+bundle exec rails test
+```

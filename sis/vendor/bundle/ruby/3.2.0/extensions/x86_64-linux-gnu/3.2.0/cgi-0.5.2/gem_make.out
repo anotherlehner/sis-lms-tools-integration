@@ -1,0 +1,18 @@
+current directory: /home/ml/src/lms-standards/sis/vendor/bundle/ruby/3.2.0/gems/cgi-0.5.2/ext/cgi/escape
+/usr/bin/ruby3.2 -I/usr/lib/ruby/vendor_ruby extconf.rb
+creating Makefile
+
+current directory: /home/ml/src/lms-standards/sis/vendor/bundle/ruby/3.2.0/gems/cgi-0.5.2/ext/cgi/escape
+make DESTDIR\= sitearchdir\=./.gem.20261119-31999-snl6yt sitelibdir\=./.gem.20261119-31999-snl6yt clean
+
+current directory: /home/ml/src/lms-standards/sis/vendor/bundle/ruby/3.2.0/gems/cgi-0.5.2/ext/cgi/escape
+make DESTDIR\= sitearchdir\=./.gem.20261119-31999-snl6yt sitelibdir\=./.gem.20261119-31999-snl6yt
+compiling escape.c
+linking shared-object cgi/escape.so
+
+current directory: /home/ml/src/lms-standards/sis/vendor/bundle/ruby/3.2.0/gems/cgi-0.5.2/ext/cgi/escape
+make DESTDIR\= sitearchdir\=./.gem.20261119-31999-snl6yt sitelibdir\=./.gem.20261119-31999-snl6yt install
+/usr/bin/install -c -m 0755 escape.so ./.gem.20261119-31999-snl6yt/cgi
+
+current directory: /home/ml/src/lms-standards/sis/vendor/bundle/ruby/3.2.0/gems/cgi-0.5.2/ext/cgi/escape
+make DESTDIR\= sitearchdir\=./.gem.20261119-31999-snl6yt sitelibdir\=./.gem.20261119-31999-snl6yt clean
