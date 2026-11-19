@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+
+set -u
+
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+
+usage() {
+  cat <<'USAGE'
+Usage: ./dev <start|stop|reset> [lms|sis|all]
+
+Targets default to all:
+  lms  Learning management system (http://127.0.0.1:3000)
+  sis  Student information system (http://127.0.0.1:3001)
+  all  Both applications
+
+Reset stops the selected app(s), resets their development databases, and
+starts them again. Database reset deletes existing data and reloads seeds.
+USAGE
+}
+
+app_dir() {
+  printf '%s/%s' "$ROOT_DIR" "$1"
+}
+
+app_port() {
+  if [ "$1" = lms ]; then
+    printf '3000'
+  else
+    printf '3001'
+  fi
+}
+
+pid_file() {
+  printf '%s/tmp/pids/lms-standards-dev.pid' "$(app_dir "$1")"
+}
+
+log_file() {
+  printf '%s/log/root-dev-server.log' "$(app_dir "$1")"
+}
+
+pid_is_app_server() {
+  local pid=$1
+  local directory=$2
+  local process_command
+
+  process_command=$(ps -p "$pid" -o command= 2>/dev/null) || return 1
+  case "$process_command" in
+    *"rails server"*|*puma*) ;;
+    *) return 1 ;;
+  esac
+
+  if [ -e "/proc/$pid/cwd" ]; then
+    local process_directory
+    process_directory=$(readlink -f "/proc/$pid/cwd" 2>/dev/null) || return 1
+    [ "$process_directory" = "$directory" ]
+  else
+    case "$process_command" in
+      *"$directory"*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+}
+
+start_app() {
+  local app=$1
+  local directory
+  local port
+  local pidfile
+  local logfile
+  local launcher_pid
+  local server_pid
+  local attempt
+
+  directory=$(app_dir "$app")
+  port=$(app_port "$app")
+  pidfile=$(pid_file "$app")
+  logfile=$(log_file "$app")
+
+  if [ -f "$pidfile" ]; then
+    server_pid=$(<"$pidfile")
+    if [[ "$server_pid" =~ ^[0-9]+$ ]] && kill -0 "$server_pid" 2>/dev/null; then
+      if pid_is_app_server "$server_pid" "$directory"; then
+        printf '%s is already running at http://127.0.0.1:%s\n' "$app" "$port"
+        return 0
+      fi
+      printf 'Refusing to start %s: PID file points to an active, unrelated process (%s).\n' "$app" "$server_pid" >&2
+      return 1
+    fi
+    rm -f -- "$pidfile"
+  fi
+
+  mkdir -p -- "$(dirname -- "$pidfile")" || {
+    printf 'Unable to create PID directory for %s.\n' "$app" >&2
+    return 1
+  }
+
+  cd -- "$directory" || {
+    printf 'Unable to enter %s directory: %s\n' "$app" "$directory" >&2
+    return 1
+  }
+  nohup env PORT="$port" PIDFILE="$pidfile" bundle exec rails server --binding 127.0.0.1 >>"$logfile" 2>&1 </dev/null &
+  launcher_pid=$!
+  cd -- "$ROOT_DIR" || return 1
+
+  for ((attempt = 0; attempt < 50; attempt++)); do
+    if [ -f "$pidfile" ]; then
+      server_pid=$(<"$pidfile")
+      if [[ "$server_pid" =~ ^[0-9]+$ ]] && pid_is_app_server "$server_pid" "$directory"; then
+        printf '%s started at http://127.0.0.1:%s (PID %s)\n' "$app" "$port" "$server_pid"
+        return 0
+      fi
+    fi
+    if ! kill -0 "$launcher_pid" 2>/dev/null; then
+      break
+    fi
+    sleep 0.2
+  done
+
+  printf 'Failed to start %s. Recent server output from %s:\n' "$app" "$logfile" >&2
+  if [ -f "$logfile" ]; then
+    tail -n 20 -- "$logfile" >&2
+  fi
+  return 1
+}
+
+stop_app() {
+  local app=$1
+  local directory
+  local pidfile
+  local server_pid
+  local attempt
+
+  directory=$(app_dir "$app")
+  pidfile=$(pid_file "$app")
+  if [ ! -f "$pidfile" ]; then
+    printf '%s is not running.\n' "$app"
+    return 0
+  fi
+
+  server_pid=$(<"$pidfile")
+  if ! [[ "$server_pid" =~ ^[0-9]+$ ]]; then
+    printf 'Cannot stop %s: invalid PID file %s.\n' "$app" "$pidfile" >&2
+    return 1
+  fi
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    rm -f -- "$pidfile"
+    printf 'Removed stale PID file for %s; it was not running.\n' "$app"
+    return 0
+  fi
+  if ! pid_is_app_server "$server_pid" "$directory"; then
+    printf 'Refusing to stop %s: PID %s is not its Rails server.\n' "$app" "$server_pid" >&2
+    return 1
+  fi
+
+  kill -TERM "$server_pid" || {
+    printf 'Unable to send stop signal to %s (PID %s).\n' "$app" "$server_pid" >&2
+    return 1
+  }
+  for ((attempt = 0; attempt < 50; attempt++)); do
+    if ! kill -0 "$server_pid" 2>/dev/null; then
+      rm -f -- "$pidfile"
+      printf '%s stopped.\n' "$app"
+      return 0
+    fi
+    if ! pid_is_app_server "$server_pid" "$directory"; then
+      rm -f -- "$pidfile"
+      printf '%s stopped.\n' "$app"
+      return 0
+    fi
+    sleep 0.2
+  done
+
+  printf '%s did not stop within 10 seconds (PID %s).\n' "$app" "$server_pid" >&2
+  return 1
+}
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  usage >&2
+  exit 2
+fi
+
+action=$1
+target=${2:-all}
+case "$action" in
+  start|stop|reset) ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
+
+case "$target" in
+  all) apps=(lms sis) ;;
+  lms|sis) apps=("$target") ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
+
+case "$action" in
+  start)
+    status=0
+    for app in "${apps[@]}"; do
+      start_app "$app" || status=1
+    done
+    exit "$status"
+    ;;
+  stop)
+    status=0
+    for app in "${apps[@]}"; do
+      stop_app "$app" || status=1
+    done
+    exit "$status"
+    ;;
+  reset)
+    status=0
+    for app in "${apps[@]}"; do
+      stop_app "$app" || status=1
+    done
+    if [ "$status" -ne 0 ]; then
+      printf 'Reset aborted because one or more apps could not be stopped.\n' >&2
+      exit "$status"
+    fi
+    for app in "${apps[@]}"; do
+      directory=$(app_dir "$app")
+      printf 'Resetting %s development database...\n' "$app"
+      if ! (cd -- "$directory" && bin/rails db:reset); then
+        printf 'Database reset failed for %s; selected apps were left stopped.\n' "$app" >&2
+        exit 1
+      fi
+    done
+    for app in "${apps[@]}"; do
+      start_app "$app" || status=1
+    done
+    exit "$status"
+    ;;
+esac
