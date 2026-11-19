@@ -1,0 +1,86 @@
+<p><%= link_to "Back to home", root_path %></p>
+<section class="panel">
+  <h1><%= @course.title %></h1>
+  <p class="muted"><%= @section.name %></p>
+  <% if @course.description.present? %>
+    <p><%= simple_format(@course.description) %></p>
+  <% end %>
+  <% if @course.objectives.present? %>
+    <h2>Goals and objectives</h2>
+    <p><%= simple_format(@course.objectives) %></p>
+  <% end %>
+  <% if @show_instructor_controls %>
+    <p><%= link_to "Open gradebook", course_section_gradebook_path(@course, @section) %></p>
+  <% end %>
+</section>
+
+<section class="panel">
+  <h2>Activities</h2>
+  <% if @activities.any? %>
+    <% @activities.each do |activity| %>
+      <article class="activity">
+        <h3><%= activity.title %></h3>
+        <% if activity.custom_content? %>
+          <%= simple_format(activity.content) %>
+        <% else %>
+          <p>This tool activity is planned for Phase 2.</p>
+        <% end %>
+
+        <% if @show_student_controls %>
+          <% if @completions[activity.id]&.completed_at.present? %>
+            <p class="status">Completed</p>
+          <% elsif activity.custom_content? %>
+            <%= button_to "Mark complete",
+              complete_course_section_activity_path(@course, @section, activity),
+              method: :patch %>
+          <% end %>
+        <% end %>
+
+        <% if @show_instructor_controls && activity.custom_content? %>
+          <details>
+            <summary>Edit activity</summary>
+            <%= form_with model: activity,
+              url: course_section_activity_path(@course, @section, activity),
+              method: :patch do |form| %>
+              <div class="field">
+                <%= form.label :title %>
+                <%= form.text_field :title, required: true %>
+              </div>
+              <div class="field">
+                <%= form.label :content %>
+                <%= form.text_area :content, rows: 5 %>
+              </div>
+              <%= form.submit "Save activity" %>
+            <% end %>
+            <%= button_to "Remove activity",
+              course_section_activity_path(@course, @section, activity),
+              method: :delete,
+              class: "danger-button",
+              form: { data: { turbo_confirm: "Remove this activity?" } } %>
+          </details>
+        <% end %>
+      </article>
+    <% end %>
+  <% else %>
+    <p>No activities have been added to this course.</p>
+  <% end %>
+
+  <% if @show_instructor_controls %>
+    <details class="activity-form">
+      <summary>Add custom content activity</summary>
+      <%= form_with model: Activity.new,
+        url: course_section_activities_path(@course, @section),
+        method: :post do |form| %>
+        <div class="field">
+          <%= form.label :title %>
+          <%= form.text_field :title, required: true %>
+        </div>
+        <div class="field">
+          <%= form.label :content %>
+          <%= form.text_area :content, rows: 5 %>
+        </div>
+        <%= form.submit "Add activity" %>
+      <% end %>
+    </details>
+  <% end %>
+</section>

@@ -1,0 +1,198 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS (and SCSS, if configured) file within this directory, lib/assets/stylesheets, or any plugin's
+ * vendor/assets/stylesheets directory can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the bottom of the
+ * compiled file so the styles you add here take precedence over styles defined in any other CSS
+ * files in this directory. Styles in this file should be added after the last require_* statement.
+ * It is generally better to create a new file per style scope.
+ *
+ *= require_tree .
+ *= require_self
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f6f8;
+  color: #17212b;
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+a {
+  color: #175ea8;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-bottom: 1px solid #dce2e8;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand {
+  color: #17212b;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.container {
+  width: 92%;
+  max-width: 1100px;
+  margin: 2rem auto;
+}
+
+.panel {
+  margin: 1rem 0;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #dce2e8;
+  border-radius: 0.5rem;
+}
+
+.narrow {
+  max-width: 440px;
+  margin: 4rem auto;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+}
+
+input,
+textarea,
+button,
+input[type="submit"] {
+  font: inherit;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+textarea {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #aeb9c4;
+  border-radius: 0.25rem;
+}
+
+button,
+input[type="submit"] {
+  padding: 0.55rem 0.9rem;
+  color: #fff;
+  background: #175ea8;
+  border: 0;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.link-button {
+  padding: 0;
+  color: #175ea8;
+  background: transparent;
+}
+
+.danger-button {
+  margin-top: 0.5rem;
+  background: #a42a2a;
+}
+
+.section-list {
+  padding-left: 1.25rem;
+}
+
+.section-list li {
+  margin: 0.5rem 0;
+}
+
+.section-list span,
+.muted {
+  margin-left: 0.5rem;
+  color: #5b6875;
+}
+
+.activity {
+  padding: 1rem 0;
+  border-top: 1px solid #e3e8ed;
+}
+
+.activity h3 {
+  margin-top: 0;
+}
+
+.activity-form {
+  margin-top: 1rem;
+}
+
+.status {
+  color: #27623a;
+  font-weight: 600;
+}
+
+.flash {
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  background: #e5f1fb;
+}
+
+.flash.alert {
+  background: #fff0ed;
+  color: #822b1d;
+}
+
+.flash.notice {
+  background: #e7f5eb;
+  color: #245c35;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.65rem;
+  border-bottom: 1px solid #dce2e8;
+  text-align: left;
+  vertical-align: top;
+}
+
+td input[type="number"] {
+  min-width: 6rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 600px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-header nav {
+    flex-wrap: wrap;
+  }
+}

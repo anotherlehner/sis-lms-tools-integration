@@ -1,0 +1,12 @@
+<% if sections.any? %>
+  <ul class="section-list">
+    <% sections.each do |section| %>
+      <li>
+        <%= link_to section.course.title, course_section_path(section.course, section) %>
+        <span><%= section.name %></span>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>No sections yet.</p>
+<% end %>

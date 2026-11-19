@@ -1,0 +1,14 @@
+<section class="panel narrow">
+  <h1>Sign in</h1>
+  <%= form_with url: lms_login_create_path, method: :post do |form| %>
+    <div class="field">
+      <%= form.label :username %>
+      <%= form.text_field :username, autocomplete: "username", required: true, autofocus: true %>
+    </div>
+    <div class="field">
+      <%= form.label :password %>
+      <%= form.password_field :password, autocomplete: "current-password", required: true %>
+    </div>
+    <%= form.submit "Sign in" %>
+  <% end %>
+</section>

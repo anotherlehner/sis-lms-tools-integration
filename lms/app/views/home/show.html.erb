@@ -1,0 +1,29 @@
+<h1>Welcome, <%= current_user.first_name %></h1>
+<p>Your roles: <%= current_user.role_names.join(", ") %></p>
+
+<% if current_user.admin? %>
+  <section class="panel">
+    <h2>Admin controls</h2>
+    <p><%= link_to "Manage all LMS records", rails_admin_path %></p>
+    <h3>All course sections</h3>
+    <%= render "section_list", sections: @all_sections %>
+  </section>
+<% end %>
+
+<% if current_user.student? %>
+  <section class="panel">
+    <h2>Courses you are taking</h2>
+    <%= render "section_list", sections: @student_sections %>
+  </section>
+<% end %>
+
+<% if current_user.instructor? %>
+  <section class="panel">
+    <h2>Courses you are teaching</h2>
+    <%= render "section_list", sections: @teaching_sections %>
+  </section>
+<% end %>
+
+<% if !current_user.admin? && @student_sections.empty? && @teaching_sections.empty? %>
+  <p>You are not currently enrolled in or assigned to a course section.</p>
+<% end %>

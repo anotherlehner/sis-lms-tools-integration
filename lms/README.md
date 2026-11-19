@@ -1,73 +1,61 @@
 # simplms
 
-A very simple learning management system.
+A very simple learning management system for local development and education.
 
-NOTE: THIS IS AN EDUCATIONAL LOCAL DEV PROJECT -- DO NOT DEPLOY IN PRODUCTION
+**Do not deploy this application to production.** The seeded credentials are intentionally simple and are not suitable for a real service.
 
-## Phase 1
+## Requirements
 
-### Features
+- Ruby 3.2.3
+- Bundler
+- Rails 7.1.6 (Rails `~> 7.1.6`)
+- SQLite
 
-- SQLite database on disk in this folder (`lms`)
-- users with first and last names, a unique identifier, and usernames and passwords
-- user roles: student, admin, instructor
-- users can have one or more roles (or even all three)
-- entities: courses, sections, grades, activities
- - a course can have many sections, a course is the central definition of a class and what it's goals and objectives are
- - a section can have many student registrations (students enrolled in the section of the course)
- - courses and sections are connected by course id combined with section id (foreign key)
- - courses have a homepage where the content for the course lives (all sections of the course see this)
- - 
-- there are no semesters, we need to keep this simple so that we focus on other priorities
-- dynamic homepage that shows:
- - what roles the user has
- - what course sections the user is teaching
- - what course sections the user is a student in (taking)
- - admin controls
- - when clicked the link to a course being taken as a student should show the course homepage (and which section the student is in), along with student-available options
- - when clicked the link to a course being taught as an instructor should show the course homepage (and which sections the instructor is teaching), along with instructor-available options
-- the web style should be very basic and clean, use simple stock modern rails development style and default styling
-- course homepage
- - students and instructors see all the content
- - courses are made up of a list of activities
- - instructors can add/remove/edit activities
- - students can see and complete activities
-- activities
- - there are two types of activity: custom content and tool
- - custom content activities are just text the instructor can enter and the student can see but not edit
- - tool content are activities that interact with external tool systems using the LTI integration standard (do not implement anything with LTI until phase 2)
-- admins should be able to see admin controls on the homepage
- - admin controls include links to the rails admin pages for all the entity types in the system
- - admins can add/edit/delete all records in any table in the system
- - admins can follow all links and see instructor AND student controls (everything)
-- initial data
- - there should be three users: admin, instructor, and student
- - passwords for these three users should all be blank to start
- - there should be one course with one section
- - the one course should have one custom activity with some lorem ipsum text
- - no tool activities should be defined yet (will be in phase 2)
-- rosters
- - each course section should have a roster associated with it (the students registered for this section)
- - rosters will be synched with the external sis system using the OpenRoster 1edtech standard (during phase 2)
-- grades
- - each course section should have grades for all the students for the course (mid term and final grades)
- - each course activity should be tracked with a grade for each student
- - grades for all students (activities and midterm and final grades) should be viewable by the instructor/admin for the section, this is called the "grade book" in the UI
- - the grades will eventually be synched to the external sis system using the the OneRoster standard (phase 2)
-- courses and enrollments will be synched to the sis system using OneRoster standard
+The app follows the shared Rails and dependency versions in `../sis`; its `Gemfile.lock` pins the resolved libraries.
 
-### System
+## Set up and run
 
-- develop using ruby on rails
-- batch imports/exports should be simple ruby scripts
-- database should be SQLite with scripts to quickly create, recreate, reset the database
-- don't use any javascript unless absolutely necessary
-- users should authenticate with simple text passwords for this test
-- there should be unit tests for all features (using modern rails development style)
-- do not add comments
-- keep the code as clean and simple as possible
-- keep the code readable by a non-ruby practitioner (err on the side of readability over conciseness)
+From this directory:
 
-## Phase 2
+```sh
+bundle install
+bin/rails db:setup
+bin/rails server
+```
 
-TODO.
+Open [http://localhost:3000](http://localhost:3000) and sign in with one of these local demo accounts:
+
+| Role | Username | Password |
+| --- | --- | --- |
+| Admin | `admin` | `admin` |
+| Instructor | `instructor` | `instructor` |
+| Student | `student` | `student` |
+
+Passwords are stored as Rails password digests. The starter accounts use their username as their password for this local demo.
+
+## Using the application
+
+- The home page shows the current user's roles and course sections.
+- Students open an enrolled section to view course content and mark custom activities complete.
+- Instructors open an assigned section to add, edit, or remove custom-content activities and use its gradebook.
+- The gradebook shows each enrolled student's activity completion and score, plus midterm and final grades. Enter grades from 0 to 100 and save them together.
+- Admins see every section, both student and instructor controls, and a link to RailsAdmin at `/admin`. RailsAdmin provides record management for all LMS entities.
+
+When an administrator creates a user in RailsAdmin without setting a password, the username is used as the initial password. Password changes are not exposed in the Phase 1 UI.
+
+## Database and tests
+
+All SQLite database files are stored under `storage/` in this directory.
+
+```sh
+bin/rails db:setup     # Create and seed the database
+bin/rails db:reset     # Recreate the database and reload the demo data
+bin/rails db:migrate   # Apply pending migrations
+bin/rails test         # Run the test suite
+```
+
+The seed data includes the three demo users, one course with one section, an instructor assignment, a student enrollment, blank midterm/final grades for that student, and one custom-content activity.
+
+## Phase 1 boundaries
+
+The app uses server-rendered Rails pages and SQLite. It does not implement tool/LTI activities, SIS synchronization, OpenRoster, OneRoster, imports/exports, or semesters; those are reserved for Phase 2.
