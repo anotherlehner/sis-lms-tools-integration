@@ -1,4 +1,4 @@
-# simplsis
+# Simple SIS
 
 A simple bare bones SIS system for demonstrating technologies and patterns.
 
