@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -u
+
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+source "$ROOT_DIR/tokens" || exit 1
+
+LMS_URL=${LMS_BASE_URL:-http://127.0.0.1:3000}
+SIS_URL=${SIS_BASE_URL:-http://127.0.0.1:3001}
+
+if [ -z "${SYNC_CONTROL_TOKEN:-}" ]; then
+  printf 'SYNC_CONTROL_TOKEN must be set.\n' >&2
+  exit 2
+fi
+
+case "$SYNC_CONTROL_TOKEN" in
+  *$'\n'*|*$'\r'*)
+    printf 'SYNC_CONTROL_TOKEN must not contain line breaks.\n' >&2
+    exit 2
+    ;;
+esac
+
+post_control() {
+  local url=$1
+  printf 'Authorization: Bearer %s\nAccept: application/json\n' "$SYNC_CONTROL_TOKEN" |
+    curl --silent --show-error --fail-with-body --request POST --header @- "$url"
+}
+
+printf 'Starting LMS roster sync from SIS...\n'
+if ! post_control "${LMS_URL%/}/sync/roster"; then
+  printf 'LMS roster sync failed; SIS gradebook sync was not started.\n' >&2
+  exit 1
+fi
+
+printf '\nStarting SIS gradebook sync from LMS...\n'
+if ! post_control "${SIS_URL%/}/sync/gradebook"; then
+  printf 'SIS gradebook sync failed.\n' >&2
+  exit 1
+fi
+
+printf '\nOneRoster synchronization completed successfully.\n'

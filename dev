@@ -3,6 +3,7 @@
 set -u
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+source "$ROOT_DIR/tokens" || exit 1
 
 usage() {
   cat <<'USAGE'
@@ -71,11 +72,20 @@ start_app() {
   local launcher_pid
   local server_pid
   local attempt
+  local oneroster_client_id
+  local oneroster_client_secret
 
   directory=$(app_dir "$app")
   port=$(app_port "$app")
   pidfile=$(pid_file "$app")
   logfile=$(log_file "$app")
+  if [ "$app" = lms ]; then
+    oneroster_client_id=$LMS_ONEROSTER_CLIENT_ID
+    oneroster_client_secret=$LMS_ONEROSTER_CLIENT_SECRET
+  else
+    oneroster_client_id=$SIS_ONEROSTER_CLIENT_ID
+    oneroster_client_secret=$SIS_ONEROSTER_CLIENT_SECRET
+  fi
 
   if [ -f "$pidfile" ]; then
     server_pid=$(<"$pidfile")
@@ -99,7 +109,9 @@ start_app() {
     printf 'Unable to enter %s directory: %s\n' "$app" "$directory" >&2
     return 1
   }
-  nohup env PORT="$port" PIDFILE="$pidfile" bundle exec rails server --binding 127.0.0.1 >>"$logfile" 2>&1 </dev/null &
+  nohup env PORT="$port" PIDFILE="$pidfile" ONEROSTER_CLIENT_ID="$oneroster_client_id" \
+    ONEROSTER_CLIENT_SECRET="$oneroster_client_secret" \
+    bundle exec rails server --binding 127.0.0.1 >>"$logfile" 2>&1 </dev/null &
   launcher_pid=$!
   cd -- "$ROOT_DIR" || return 1
 

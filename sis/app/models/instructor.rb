@@ -1,4 +1,6 @@
 class Instructor < ApplicationRecord
+  include OneRosterSourced
+
   belongs_to :person
   belongs_to :section
 

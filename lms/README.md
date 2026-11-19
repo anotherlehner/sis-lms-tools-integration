@@ -56,6 +56,10 @@ bin/rails test         # Run the test suite
 
 The seed data includes the three demo users, one course with one section, an instructor assignment, a student enrollment, blank midterm/final grades for that student, and one custom-content activity.
 
-## Phase 1 boundaries
+## SIS synchronization
 
-The app uses server-rendered Rails pages and SQLite. It does not implement tool/LTI activities, SIS synchronization, OpenRoster, OneRoster, imports/exports, or semesters; those are reserved for Phase 2.
+The LMS consumes OneRoster 1.2 roster data from the SIS and provides gradebook results for the SIS to consume. See [`../docs/oneroster.md`](../docs/oneroster.md) for the API roles, mappings, and sync script configuration.
+
+## Remaining boundaries
+
+The app uses server-rendered Rails pages and SQLite. It does not implement tool/LTI activities or semesters.

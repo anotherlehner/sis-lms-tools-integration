@@ -5,6 +5,11 @@ Rails.application.routes.draw do
   delete "logout", to: "sessions#destroy", as: :logout
   get "up" => "rails/health#show", as: :rails_health_check
 
+  post "sync/roster", to: "api/sync#roster"
+  post "ims/oneroster/v1p2/oauth/token", to: "api/ims/oneroster/v1p2/oauth_tokens#create"
+  get "ims/oneroster/v1p2/lineItems", to: "api/ims/oneroster/v1p2/gradebook#line_items"
+  get "ims/oneroster/v1p2/results", to: "api/ims/oneroster/v1p2/gradebook#results"
+
   resources :courses, only: [] do
     resources :sections, only: :show do
       resources :activities, only: %i[create update destroy] do

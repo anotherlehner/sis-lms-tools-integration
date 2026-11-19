@@ -1,4 +1,6 @@
 class Section < ApplicationRecord
+  include OneRosterSourced
+
   belongs_to :course
   has_many :enrollments, dependent: :destroy
   has_many :people, through: :enrollments

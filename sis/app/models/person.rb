@@ -1,4 +1,6 @@
 class Person < ApplicationRecord
+  include OneRosterSourced
+
   has_many :roles, dependent: :destroy
   has_many :role_trans, through: :roles
   has_many :enrollments, dependent: :destroy

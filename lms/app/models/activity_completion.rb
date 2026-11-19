@@ -1,4 +1,6 @@
 class ActivityCompletion < ApplicationRecord
+  include OneRosterSourced
+
   belongs_to :activity
   belongs_to :user
 

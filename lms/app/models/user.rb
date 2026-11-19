@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  include OneRosterSourced
+
   has_secure_password
 
   has_many :user_roles, dependent: :destroy

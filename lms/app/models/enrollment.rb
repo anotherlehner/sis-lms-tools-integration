@@ -1,4 +1,6 @@
 class Enrollment < ApplicationRecord
+  include OneRosterSourced
+
   belongs_to :section
   belongs_to :user
 

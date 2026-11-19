@@ -1,4 +1,6 @@
 class Enrollment < ApplicationRecord
+  include OneRosterSourced
+
   belongs_to :person
   belongs_to :section
   has_many :grades, dependent: :destroy

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_19_180002) do
   create_table "activities", force: :cascade do |t|
     t.integer "course_id", null: false
     t.string "title", null: false
@@ -19,7 +19,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["course_id"], name: "index_activities_on_course_id"
+    t.index ["one_roster_sourced_id"], name: "index_activities_on_one_roster_sourced_id", unique: true
     t.check_constraint "activity_type IN ('custom_content', 'tool')", name: "activities_type_valid"
   end
 
@@ -30,8 +32,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.decimal "score", precision: 5, scale: 2
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["activity_id", "user_id"], name: "index_activity_completions_on_activity_id_and_user_id", unique: true
     t.index ["activity_id"], name: "index_activity_completions_on_activity_id"
+    t.index ["one_roster_sourced_id"], name: "index_activity_completions_on_one_roster_sourced_id", unique: true
     t.index ["user_id"], name: "index_activity_completions_on_user_id"
     t.check_constraint "score IS NULL OR (score >= 0 AND score <= 100)", name: "activity_completion_score_valid"
   end
@@ -42,6 +46,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.text "objectives", default: "", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.string "course_code"
+    t.index ["one_roster_sourced_id"], name: "index_courses_on_one_roster_sourced_id", unique: true
   end
 
   create_table "enrollments", force: :cascade do |t|
@@ -49,6 +56,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.index ["one_roster_sourced_id"], name: "index_enrollments_on_one_roster_sourced_id", unique: true
     t.index ["section_id", "user_id"], name: "index_enrollments_on_section_id_and_user_id", unique: true
     t.index ["section_id"], name: "index_enrollments_on_section_id"
     t.index ["user_id"], name: "index_enrollments_on_user_id"
@@ -69,6 +78,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.decimal "final_grade", precision: 5, scale: 2
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "midterm_sourced_id"
+    t.string "final_sourced_id"
+    t.index ["final_sourced_id"], name: "index_section_grades_on_final_sourced_id", unique: true
+    t.index ["midterm_sourced_id"], name: "index_section_grades_on_midterm_sourced_id", unique: true
     t.index ["section_id", "user_id"], name: "index_section_grades_on_section_id_and_user_id", unique: true
     t.index ["section_id"], name: "index_section_grades_on_section_id"
     t.index ["user_id"], name: "index_section_grades_on_user_id"
@@ -81,7 +94,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.string "class_code"
     t.index ["course_id"], name: "index_sections_on_course_id"
+    t.index ["one_roster_sourced_id"], name: "index_sections_on_one_roster_sourced_id", unique: true
   end
 
   create_table "teaching_assignments", force: :cascade do |t|
@@ -89,6 +105,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.index ["one_roster_sourced_id"], name: "index_teaching_assignments_on_one_roster_sourced_id", unique: true
     t.index ["section_id", "user_id"], name: "index_teaching_assignments_on_section_id_and_user_id", unique: true
     t.index ["section_id"], name: "index_teaching_assignments_on_section_id"
     t.index ["user_id"], name: "index_teaching_assignments_on_user_id"
@@ -112,7 +130,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170000) do
     t.string "password_digest", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["identifier"], name: "index_users_on_identifier", unique: true
+    t.index ["one_roster_sourced_id"], name: "index_users_on_one_roster_sourced_id", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 

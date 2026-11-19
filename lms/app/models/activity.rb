@@ -1,6 +1,8 @@
 class Activity < ApplicationRecord
   TYPES = %w[custom_content tool].freeze
 
+  include OneRosterSourced
+
   belongs_to :course
   has_many :activity_completions, dependent: :destroy
 

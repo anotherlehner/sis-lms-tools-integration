@@ -10,14 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_19_180001) do
   create_table "courses", force: :cascade do |t|
     t.string "code", null: false
     t.string "title", null: false
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["code"], name: "index_courses_on_code", unique: true
+    t.index ["one_roster_sourced_id"], name: "index_courses_on_one_roster_sourced_id", unique: true
   end
 
   create_table "enrollments", force: :cascade do |t|
@@ -27,6 +29,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
     t.string "final_grade"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.string "midterm_result_sourced_id"
+    t.string "final_result_sourced_id"
+    t.index ["final_result_sourced_id"], name: "index_enrollments_on_final_result_sourced_id", unique: true
+    t.index ["midterm_result_sourced_id"], name: "index_enrollments_on_midterm_result_sourced_id", unique: true
+    t.index ["one_roster_sourced_id"], name: "index_enrollments_on_one_roster_sourced_id", unique: true
     t.index ["person_id", "section_id"], name: "index_enrollments_on_person_id_and_section_id", unique: true
     t.index ["person_id"], name: "index_enrollments_on_person_id"
     t.index ["section_id"], name: "index_enrollments_on_section_id"
@@ -40,7 +48,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
     t.text "comment"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.index ["enrollment_id", "activity_identifier"], name: "index_grades_on_enrollment_and_activity_identifier", unique: true, where: "activity_identifier IS NOT NULL"
     t.index ["enrollment_id"], name: "index_grades_on_enrollment_id"
+    t.index ["one_roster_sourced_id"], name: "index_grades_on_one_roster_sourced_id", unique: true
   end
 
   create_table "instructors", force: :cascade do |t|
@@ -48,6 +59,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
     t.integer "section_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
+    t.index ["one_roster_sourced_id"], name: "index_instructors_on_one_roster_sourced_id", unique: true
     t.index ["person_id", "section_id"], name: "index_instructors_on_person_id_and_section_id", unique: true
     t.index ["person_id"], name: "index_instructors_on_person_id"
     t.index ["section_id"], name: "index_instructors_on_section_id"
@@ -61,7 +74,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
     t.string "password", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["identifier"], name: "index_people_on_identifier", unique: true
+    t.index ["one_roster_sourced_id"], name: "index_people_on_one_roster_sourced_id", unique: true
     t.index ["username"], name: "index_people_on_username", unique: true
   end
 
@@ -90,8 +105,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_170040) do
     t.string "title", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "one_roster_sourced_id"
     t.index ["course_id", "code"], name: "index_sections_on_course_id_and_code", unique: true
     t.index ["course_id"], name: "index_sections_on_course_id"
+    t.index ["one_roster_sourced_id"], name: "index_sections_on_one_roster_sourced_id", unique: true
   end
 
   add_foreign_key "enrollments", "people"

@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  printf 'This script must be sourced by ./dev or ./sync.\n' >&2
+  exit 2
+fi
+
+_load_oneroster_tokens() {
+  local root_dir token_file temporary_file key value
+  local sync_control_token
+  local lms_client_secret
+  local sis_client_secret
+  local -A values=()
+
+  root_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || return 1
+  token_file=${LMS_STANDARDS_TOKENS_FILE:-"$root_dir/.tokens"}
+
+  if [[ -L "$token_file" ]]; then
+    printf 'Refusing to load OneRoster tokens from a symbolic link: %s\n' "$token_file" >&2
+    return 1
+  fi
+
+  if [[ ! -e "$token_file" ]]; then
+    if ! command -v openssl >/dev/null 2>&1; then
+      printf 'openssl is required to generate local OneRoster tokens.\n' >&2
+      return 1
+    fi
+
+    sync_control_token=$(openssl rand -hex 32) || return 1
+    lms_client_secret=$(openssl rand -hex 32) || return 1
+    sis_client_secret=$(openssl rand -hex 32) || return 1
+    temporary_file=$(mktemp "${token_file}.XXXXXX") || {
+      printf 'Unable to create a private OneRoster token file at %s.\n' "$token_file" >&2
+      return 1
+    }
+
+    if ! {
+      printf 'SYNC_CONTROL_TOKEN=%s\n' "$sync_control_token"
+      printf 'LMS_ONEROSTER_CLIENT_ID=lms-client\n'
+      printf 'LMS_ONEROSTER_CLIENT_SECRET=%s\n' "$lms_client_secret"
+      printf 'SIS_ONEROSTER_CLIENT_ID=sis-client\n'
+      printf 'SIS_ONEROSTER_CLIENT_SECRET=%s\n' "$sis_client_secret"
+    } >"$temporary_file" || ! chmod 600 -- "$temporary_file"; then
+      rm -f -- "$temporary_file"
+      printf 'Unable to write the private OneRoster token file at %s.\n' "$token_file" >&2
+      return 1
+    fi
+
+    if ! ln -- "$temporary_file" "$token_file" 2>/dev/null && [[ ! -e "$token_file" ]]; then
+      rm -f -- "$temporary_file"
+      printf 'Unable to install the OneRoster token file at %s.\n' "$token_file" >&2
+      return 1
+    fi
+    rm -f -- "$temporary_file"
+  fi
+
+  if ! chmod 600 -- "$token_file"; then
+    printf 'Unable to restrict permissions on the OneRoster token file at %s.\n' "$token_file" >&2
+    return 1
+  fi
+
+  while IFS='=' read -r key value || [[ -n "$key$value" ]]; do
+    case "$key" in
+      SYNC_CONTROL_TOKEN|LMS_ONEROSTER_CLIENT_ID|LMS_ONEROSTER_CLIENT_SECRET|SIS_ONEROSTER_CLIENT_ID|SIS_ONEROSTER_CLIENT_SECRET) ;;
+      *)
+        printf 'Invalid entry in OneRoster token file %s.\n' "$token_file" >&2
+        return 1
+        ;;
+    esac
+    if [[ -n "${values[$key]+present}" || ! "$value" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+      printf 'Invalid or duplicate entry in OneRoster token file %s.\n' "$token_file" >&2
+      return 1
+    fi
+    values[$key]=$value
+  done <"$token_file"
+
+  if [[ ${#values[@]} -ne 5 ]]; then
+    printf 'OneRoster token file %s is incomplete.\n' "$token_file" >&2
+    return 1
+  fi
+
+  export SYNC_CONTROL_TOKEN="${SYNC_CONTROL_TOKEN-${values[SYNC_CONTROL_TOKEN]}}"
+  export LMS_ONEROSTER_CLIENT_ID="${LMS_ONEROSTER_CLIENT_ID-${values[LMS_ONEROSTER_CLIENT_ID]}}"
+  export LMS_ONEROSTER_CLIENT_SECRET="${LMS_ONEROSTER_CLIENT_SECRET-${values[LMS_ONEROSTER_CLIENT_SECRET]}}"
+  export SIS_ONEROSTER_CLIENT_ID="${SIS_ONEROSTER_CLIENT_ID-${values[SIS_ONEROSTER_CLIENT_ID]}}"
+  export SIS_ONEROSTER_CLIENT_SECRET="${SIS_ONEROSTER_CLIENT_SECRET-${values[SIS_ONEROSTER_CLIENT_SECRET]}}"
+
+  export LMS_BASE_URL="${LMS_BASE_URL:-http://127.0.0.1:3000}"
+  export SIS_BASE_URL="${SIS_BASE_URL:-http://127.0.0.1:3001}"
+  export LMS_ONEROSTER_URL="${LMS_ONEROSTER_URL:-http://127.0.0.1:3000}"
+  export SIS_ONEROSTER_URL="${SIS_ONEROSTER_URL:-http://127.0.0.1:3001}"
+}
+
+if ! _load_oneroster_tokens; then
+  return 1
+fi
+unset -f _load_oneroster_tokens

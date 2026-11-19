@@ -1,4 +1,6 @@
 class SectionGrade < ApplicationRecord
+  before_validation :ensure_grade_sourced_ids, on: :create
+
   belongs_to :section
   belongs_to :user
 
@@ -7,6 +9,11 @@ class SectionGrade < ApplicationRecord
   validate :user_must_be_enrolled
 
   private
+
+  def ensure_grade_sourced_ids
+    self.midterm_sourced_id ||= SecureRandom.uuid
+    self.final_sourced_id ||= SecureRandom.uuid
+  end
 
   def user_must_be_enrolled
     errors.add(:user, "must be enrolled in the section") if section && user && !section.enrollments.exists?(user_id: user.id)
