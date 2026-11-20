@@ -1,5 +1,7 @@
 module OneRoster
   class RosterPayloads
+    # The SIS has no organization model, so this stable ID identifies its
+    # default school and anchors organization references in roster records.
     ORGANIZATION_ID = "00000000-0000-4000-8000-000000000001"
     ORGANIZATION_LAST_MODIFIED = "1970-01-01T00:00:00Z"
 
@@ -44,8 +46,11 @@ module OneRoster
         role = role_for(role)
         next unless role
 
+        # DEMO ONLY: Expose the SIS password using OneRoster's optional User field.
+        # Never transfer passwords this way in a production system.
         payload = base(person).merge(
           "username" => person.username,
+          "password" => person.password,
           "enabledUser" => true,
           "givenName" => person.first_name,
           "familyName" => person.last_name,

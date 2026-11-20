@@ -33,3 +33,5 @@ The [OneRoster integration reference](docs/oneroster.md) describes the SIS-to-LM
 ```
 
 The script waits for roster synchronization to finish before starting gradebook synchronization and stops if either operation fails.
+
+> **Demonstration only:** The SIS-to-LMS roster sync includes SIS user passwords in the optional OneRoster `User.password` field and applies them to LMS accounts. This deliberately demonstrates password provisioning and must not be used in production. Use an identity provider/SSO integration or a secure password setup and reset flow instead.

@@ -5,6 +5,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   exit 2
 fi
 
+# Creates or reuses private local credentials and exports the control token,
+# both apps' OneRoster client IDs/secrets, and their local service URLs.
 _load_oneroster_tokens() {
   local root_dir token_file temporary_file key value
   local sync_control_token

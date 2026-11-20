@@ -2,6 +2,8 @@ require "digest"
 
 module OneRoster
   module Identifiers
+    # Derive stable OneRoster IDs for generated gradebook records so repeated
+    # syncs refer to the same results instead of creating duplicates.
     def self.uuid_v5(namespace_uuid, name)
       namespace = [namespace_uuid.delete("-")].pack("H*")
       bytes = Digest::SHA1.digest(namespace + name).bytes.first(16)

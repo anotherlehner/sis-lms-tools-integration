@@ -32,6 +32,7 @@ class OneRoster::RosterPayloadsTest < ActiveSupport::TestCase
     assert_equal "student", users.fetch("student").fetch("role")
     assert_equal "teacher", users.fetch("teacher").fetch("role")
     assert_equal @student.identifier, users.fetch("student").dig("userIds", 0, "identifier")
+    assert_equal @student.password, users.fetch("student").fetch("password")
 
     enrollments = payloads.enrollments
     assert_equal %w[student teacher], enrollments.map { |enrollment| enrollment.fetch("role") }.sort

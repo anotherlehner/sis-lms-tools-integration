@@ -52,6 +52,10 @@ module OneRoster
     def sync_user(record)
       sourced_id = required(record, "sourcedId")
       username = required(record, "username")
+      password = optional_text(record, "password")
+      if record.key?("password") && password.blank?
+        raise SyncError, "OneRoster user #{sourced_id} has an invalid password."
+      end
       user_ids = record["userIds"]
       raise SyncError, "OneRoster user #{sourced_id} has invalid userIds." unless user_ids.nil? || user_ids.is_a?(Array)
 
@@ -72,6 +76,9 @@ module OneRoster
         identifier: identifier.presence || sourced_id,
         username: username
       )
+      # DEMO ONLY: Apply the SIS password from OneRoster to LMS login credentials.
+      # Do not transfer or set passwords this way in a production system.
+      user.password = password if password.present?
       user.save!
       user.roles = [Role.find_or_create_by!(name: role_name)]
     end

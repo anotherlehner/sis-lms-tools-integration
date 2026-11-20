@@ -34,6 +34,8 @@ Organizations are represented by a single documented default organization becaus
 
 Only student and teacher roles are included in the roster subset. SIS administrators and staff are intentionally excluded; the LMS does not grant administrator privileges based on an incoming roster role.
 
+For this demonstration, SIS-to-LMS user records include the optional OneRoster `User.password` field, and the LMS applies it as the user's login password on each sync. This is demo-only behavior and must not be used in a production system: it transfers reusable credentials between applications and does not define a safe password lifecycle. Use SSO or a separate secure account invitation and password reset flow in production.
+
 The current consumer subset imports only records with `active` status. Handling inactive or `tobedeleted` records and reconciliation-based removal is not implemented; such statuses are reported as sync errors rather than silently applied.
 
 ## API and trigger boundaries

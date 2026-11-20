@@ -61,6 +61,33 @@ class OneRoster::RosterSynchronizerTest < ActiveSupport::TestCase
     refute student.authenticate("student")
   end
 
+  test "imports and refreshes passwords supplied by the SIS" do
+    @collections["users"].first["password"] = "initial-sis-password"
+    synchronizer = OneRoster::RosterSynchronizer.new(client: FakeClient.new(@collections))
+
+    synchronizer.call
+    student = User.find_by!(one_roster_sourced_id: @student_id)
+    assert student.authenticate("initial-sis-password")
+
+    @collections["users"].first["password"] = "updated-sis-password"
+    synchronizer.call
+
+    student.reload
+    assert student.authenticate("updated-sis-password")
+    refute student.authenticate("initial-sis-password")
+  end
+
+  test "rejects a blank SIS password without creating users" do
+    @collections["users"].first["password"] = ""
+
+    error = assert_raises(OneRoster::SyncError) do
+      OneRoster::RosterSynchronizer.new(client: FakeClient.new(@collections)).call
+    end
+
+    assert_match "invalid password", error.message
+    assert_empty User.all
+  end
+
   test "rolls back all roster changes if a class references an unknown course" do
     @collections["classes"].first["course"]["sourcedId"] = SecureRandom.uuid
 

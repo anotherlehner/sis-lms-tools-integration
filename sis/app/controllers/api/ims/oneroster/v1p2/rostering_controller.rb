@@ -11,6 +11,8 @@ class Api::Ims::Oneroster::V1p2::RosteringController < Api::BaseController
     render_collection(:courses, payloads.courses)
   end
 
+  # OneRoster Courses are catalog definitions; Classes are scheduled
+  # sections of those courses and are the units users enroll in.
   def classes
     render_collection(:classes, payloads.classes)
   end
