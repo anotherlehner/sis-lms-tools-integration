@@ -11,6 +11,7 @@ class User < ApplicationRecord
   has_many :taught_sections, through: :teaching_assignments, source: :section
   has_many :activity_completions, dependent: :destroy
   has_many :section_grades, dependent: :destroy
+  has_many :lti_launches, dependent: :delete_all
 
   before_validation :normalize_identity
   before_validation :set_default_password, on: :create

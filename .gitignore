@@ -1,2 +1,7 @@
 # Local OneRoster credentials
 .tokens
+.local/
+/tools/acme/.bundle/
+/tools/acme/vendor/
+/tools/acme/tmp/
+/tools/acme/log/

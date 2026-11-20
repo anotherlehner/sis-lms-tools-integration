@@ -12,24 +12,29 @@ Usage: ./dev <start|stop|reset|test> [lms|sis|all]
 Targets default to all:
   lms  Learning management system (http://127.0.0.1:3000)
   sis  Student information system (http://127.0.0.1:3001)
-  all  Both applications
+  acme Acme Guess the Number tool (http://127.0.0.1:3002)
+  all  All applications
 
 Reset stops the selected app(s), resets their development databases, and
-starts them again. Database reset deletes existing data and reloads seeds.
-Test runs the unit tests for the selected app(s).
+starts them again. The Acme tool has no database to reset. Test runs the
+selected app's test suite.
 USAGE
 }
 
 app_dir() {
-  printf '%s/%s' "$ROOT_DIR" "$1"
+  if [ "$1" = acme ]; then
+    printf '%s/tools/acme' "$ROOT_DIR"
+  else
+    printf '%s/%s' "$ROOT_DIR" "$1"
+  fi
 }
 
 app_port() {
-  if [ "$1" = lms ]; then
-    printf '3000'
-  else
-    printf '3001'
-  fi
+  case "$1" in
+    lms) printf '3000' ;;
+    sis) printf '3001' ;;
+    acme) printf '3002' ;;
+  esac
 }
 
 pid_file() {
@@ -38,6 +43,43 @@ pid_file() {
 
 log_file() {
   printf '%s/log/root-dev-server.log' "$(app_dir "$1")"
+}
+
+ensure_lti_keys() {
+  local key_dir="$ROOT_DIR/.local/lti"
+  local platform_key="$key_dir/platform.pem"
+  local tool_key="$key_dir/acme-tool.pem"
+  local key
+
+  for key in "$ROOT_DIR/.local" "$key_dir" "$platform_key" "$tool_key"; do
+    if [ -L "$key" ]; then
+      printf 'Refusing to use a symbolic link for local LTI key path: %s\n' "$key" >&2
+      return 1
+    fi
+  done
+  mkdir -p -- "$key_dir" || return 1
+  chmod 700 -- "$key_dir" || return 1
+
+  for key in "$platform_key" "$tool_key"; do
+    if [ -e "$key" ] && [ ! -f "$key" ]; then
+      printf 'Refusing to use a non-file local LTI key path: %s\n' "$key" >&2
+      return 1
+    fi
+    if [ ! -e "$key" ]; then
+      if ! (umask 077 && openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$key"); then
+        printf 'Unable to generate local LTI key at %s.\n' "$key" >&2
+        return 1
+      fi
+    fi
+    chmod 600 -- "$key" || return 1
+    openssl pkey -check -noout -in "$key" >/dev/null 2>&1 || {
+      printf 'Invalid local LTI private key at %s.\n' "$key" >&2
+      return 1
+    }
+  done
+
+  export LTI_PLATFORM_PRIVATE_KEY_PATH="$platform_key"
+  export LTI_TOOL_PRIVATE_KEY_PATH="$tool_key"
 }
 
 pid_is_app_server() {
@@ -74,6 +116,8 @@ start_app() {
   local attempt
   local oneroster_client_id
   local oneroster_client_secret
+  local lti_platform_key
+  local lti_tool_key
 
   directory=$(app_dir "$app")
   port=$(app_port "$app")
@@ -82,9 +126,18 @@ start_app() {
   if [ "$app" = lms ]; then
     oneroster_client_id=$LMS_ONEROSTER_CLIENT_ID
     oneroster_client_secret=$LMS_ONEROSTER_CLIENT_SECRET
-  else
+  elif [ "$app" = sis ]; then
     oneroster_client_id=$SIS_ONEROSTER_CLIENT_ID
     oneroster_client_secret=$SIS_ONEROSTER_CLIENT_SECRET
+  else
+    oneroster_client_id=""
+    oneroster_client_secret=""
+  fi
+  lti_platform_key=${LTI_PLATFORM_PRIVATE_KEY_PATH:-"$ROOT_DIR/.local/lti/platform.pem"}
+  lti_tool_key=${LTI_TOOL_PRIVATE_KEY_PATH:-"$ROOT_DIR/.local/lti/acme-tool.pem"}
+
+  if [ "$app" = lms ] && ! prepare_lms_start; then
+    return 1
   fi
 
   if [ -f "$pidfile" ]; then
@@ -104,14 +157,32 @@ start_app() {
     printf 'Unable to create PID directory for %s.\n' "$app" >&2
     return 1
   }
+  mkdir -p -- "$(dirname -- "$logfile")" || {
+    printf 'Unable to create log directory for %s.\n' "$app" >&2
+    return 1
+  }
 
   cd -- "$directory" || {
     printf 'Unable to enter %s directory: %s\n' "$app" "$directory" >&2
     return 1
   }
-  nohup env PORT="$port" PIDFILE="$pidfile" ONEROSTER_CLIENT_ID="$oneroster_client_id" \
-    ONEROSTER_CLIENT_SECRET="$oneroster_client_secret" \
-    bundle exec rails server --binding 127.0.0.1 >>"$logfile" 2>&1 </dev/null &
+  if [ "$app" = acme ]; then
+    nohup env PORT="$port" LTI_PLATFORM_ISSUER="${LTI_PLATFORM_ISSUER:-http://127.0.0.1:3000}" \
+      LTI_PLATFORM_PRIVATE_KEY_PATH="$lti_platform_key" LTI_TOOL_PRIVATE_KEY_PATH="$lti_tool_key" \
+      LTI_TOOL_BASE_URL="${LTI_TOOL_BASE_URL:-http://127.0.0.1:3002}" \
+      LTI_TOOL_CLIENT_ID="${LTI_TOOL_CLIENT_ID:-acme-guess-the-number}" \
+      LTI_DEPLOYMENT_ID="${LTI_DEPLOYMENT_ID:-local-acme}" \
+      bundle exec puma config.ru --bind "tcp://127.0.0.1:$port" --pidfile "$pidfile" >>"$logfile" 2>&1 </dev/null &
+  else
+    nohup env PORT="$port" PIDFILE="$pidfile" ONEROSTER_CLIENT_ID="$oneroster_client_id" \
+      ONEROSTER_CLIENT_SECRET="$oneroster_client_secret" \
+      LTI_PLATFORM_ISSUER="${LTI_PLATFORM_ISSUER:-http://127.0.0.1:3000}" \
+      LTI_PLATFORM_PRIVATE_KEY_PATH="$lti_platform_key" LTI_TOOL_PRIVATE_KEY_PATH="$lti_tool_key" \
+      LTI_TOOL_BASE_URL="${LTI_TOOL_BASE_URL:-http://127.0.0.1:3002}" \
+      LTI_TOOL_CLIENT_ID="${LTI_TOOL_CLIENT_ID:-acme-guess-the-number}" \
+      LTI_DEPLOYMENT_ID="${LTI_DEPLOYMENT_ID:-local-acme}" \
+      bundle exec rails server --binding 127.0.0.1 >>"$logfile" 2>&1 </dev/null &
+  fi
   launcher_pid=$!
   cd -- "$ROOT_DIR" || return 1
 
@@ -187,13 +258,63 @@ stop_app() {
   return 1
 }
 
+prepare_lms_start() {
+  local directory
+  local pidfile
+  local server_pid
+  local migration_status
+
+  directory=$(app_dir lms)
+  pidfile=$(pid_file lms)
+  if ! migration_status=$(cd -- "$directory" && bin/rails db:migrate:status 2>&1); then
+    printf 'Unable to check LMS migrations:\n%s\n' "$migration_status" >&2
+    return 1
+  fi
+
+  if grep -Eq '^[[:space:]]*down[[:space:]]' <<<"$migration_status"; then
+    if [ -f "$pidfile" ]; then
+      server_pid=$(<"$pidfile")
+      if [[ "$server_pid" =~ ^[0-9]+$ ]] && kill -0 "$server_pid" 2>/dev/null; then
+        if ! pid_is_app_server "$server_pid" "$directory"; then
+          printf 'Refusing to migrate the LMS while its PID file points to an unrelated process (%s).\n' "$server_pid" >&2
+          return 1
+        fi
+        stop_app lms || return 1
+      fi
+    fi
+
+    printf 'Applying pending LMS database migrations...\n'
+    if ! (cd -- "$directory" && bin/rails db:migrate); then
+      printf 'LMS migrations failed; the LMS was not started.\n' >&2
+      return 1
+    fi
+  fi
+
+  if [ -f "$pidfile" ] && [ -f "$directory/db/schema.rb" ] && [ "$directory/db/schema.rb" -nt "$pidfile" ]; then
+    server_pid=$(<"$pidfile")
+    if [[ "$server_pid" =~ ^[0-9]+$ ]] && kill -0 "$server_pid" 2>/dev/null; then
+      if ! pid_is_app_server "$server_pid" "$directory"; then
+        printf 'Refusing to restart the LMS: PID file points to an unrelated process (%s).\n' "$server_pid" >&2
+        return 1
+      fi
+      printf 'Restarting LMS to reload the updated database schema.\n'
+      stop_app lms || return 1
+    fi
+  fi
+}
+
 test_app() {
   local app=$1
   local directory
 
   directory=$(app_dir "$app")
   printf 'Running %s tests...\n' "$app"
-  if ! (cd -- "$directory" && bin/rails test); then
+  if [ "$app" = acme ]; then
+    if ! (cd -- "$directory" && bundle exec ruby test/app_test.rb); then
+      printf 'Tests failed for %s.\n' "$app" >&2
+      return 1
+    fi
+  elif ! (cd -- "$directory" && bin/rails test); then
     printf 'Tests failed for %s.\n' "$app" >&2
     return 1
   fi
@@ -215,8 +336,8 @@ case "$action" in
 esac
 
 case "$target" in
-  all) apps=(lms sis) ;;
-  lms|sis) apps=("$target") ;;
+  all) apps=(lms sis acme) ;;
+  lms|sis|acme) apps=("$target") ;;
   *)
     usage >&2
     exit 2
@@ -225,6 +346,9 @@ esac
 
 case "$action" in
   start)
+    if [[ " ${apps[*]} " == *" lms "* || " ${apps[*]} " == *" acme "* ]]; then
+      ensure_lti_keys || exit 1
+    fi
     status=0
     for app in "${apps[@]}"; do
       start_app "$app" || status=1
@@ -239,6 +363,9 @@ case "$action" in
     exit "$status"
     ;;
   reset)
+    if [[ " ${apps[*]} " == *" lms "* || " ${apps[*]} " == *" acme "* ]]; then
+      ensure_lti_keys || exit 1
+    fi
     status=0
     for app in "${apps[@]}"; do
       stop_app "$app" || status=1
@@ -248,6 +375,9 @@ case "$action" in
       exit "$status"
     fi
     for app in "${apps[@]}"; do
+      if [ "$app" = acme ]; then
+        continue
+      fi
       directory=$(app_dir "$app")
       printf 'Resetting %s development database...\n' "$app"
       if ! (cd -- "$directory" && bin/rails db:reset); then
@@ -256,6 +386,9 @@ case "$action" in
       fi
     done
     for app in "${apps[@]}"; do
+      if [ "$app" = acme ]; then
+        continue
+      fi
       start_app "$app" || status=1
     done
     exit "$status"

@@ -23,16 +23,26 @@
         <% if activity.custom_content? %>
           <%= simple_format(activity.content) %>
         <% else %>
-          <p>This tool activity is planned for Phase 2.</p>
+          <p class="muted">Acme tool</p>
         <% end %>
 
         <% if @show_student_controls %>
           <% if @completions[activity.id]&.completed_at.present? %>
-            <p class="status">Completed</p>
+            <p class="status">
+              <% if activity.tool? && @completions[activity.id].attempt_count.present? %>
+                Completed in <%= @completions[activity.id].attempt_count %>
+                <%= "guess".pluralize(@completions[activity.id].attempt_count) %>
+              <% else %>
+                Completed
+              <% end %>
+            </p>
           <% elsif activity.custom_content? %>
             <%= button_to "Mark complete",
               complete_course_section_activity_path(@course, @section, activity),
               method: :patch %>
+          <% elsif @show_tool_launch %>
+            <%= link_to "Launch Guess the Number",
+              launch_course_section_activity_path(@course, @section, activity) %>
           <% end %>
         <% end %>
 
@@ -52,12 +62,14 @@
               </div>
               <%= form.submit "Save activity" %>
             <% end %>
-            <%= button_to "Remove activity",
-              course_section_activity_path(@course, @section, activity),
-              method: :delete,
-              class: "danger-button",
-              form: { data: { turbo_confirm: "Remove this activity?" } } %>
           </details>
+        <% end %>
+        <% if @show_instructor_controls %>
+          <%= button_to "Remove activity",
+            course_section_activity_path(@course, @section, activity),
+            method: :delete,
+            class: "danger-button",
+            form: { data: { turbo_confirm: "Remove this activity?" } } %>
         <% end %>
       </article>
     <% end %>
@@ -82,5 +94,8 @@
         <%= form.submit "Add activity" %>
       <% end %>
     </details>
+    <%= button_to "Add Guess the Number tool",
+      create_tool_course_section_activities_path(@course, @section),
+      method: :post %>
   <% end %>
 </section>

@@ -14,6 +14,21 @@ class ActivitiesController < ApplicationController
     end
   end
 
+  def create_tool
+    activity = @course.activities.build(
+      title: "Guess the Number",
+      activity_type: "tool",
+      content: "Acme Guess the Number",
+      position: @course.activities.maximum(:position).to_i + 1
+    )
+
+    if activity.save
+      redirect_to course_section_path(@course, @section), notice: "Guess the Number tool added."
+    else
+      redirect_to course_section_path(@course, @section), alert: activity.errors.full_messages.to_sentence
+    end
+  end
+
   def update
     if @activity.custom_content? && @activity.update(activity_params)
       redirect_to course_section_path(@course, @section), notice: "Activity updated."
@@ -24,12 +39,8 @@ class ActivitiesController < ApplicationController
   end
 
   def destroy
-    if @activity.custom_content?
-      @activity.destroy!
-      redirect_to course_section_path(@course, @section), notice: "Activity removed."
-    else
-      redirect_to course_section_path(@course, @section), alert: "Tool activities are not available in Phase 1."
-    end
+    @activity.destroy!
+    redirect_to course_section_path(@course, @section), notice: "Activity removed."
   end
 
   def complete

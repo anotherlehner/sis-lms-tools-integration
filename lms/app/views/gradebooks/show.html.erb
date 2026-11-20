@@ -45,6 +45,10 @@
                 <% completion = @activity_completions[[student.id, activity.id]] %>
                 <td>
                   <span class="muted"><%= completion&.completed_at ? "Complete" : "Incomplete" %></span>
+                  <% if completion&.attempt_count.present? %>
+                    <p class="muted">Solved in <%= completion.attempt_count %>
+                      <%= "guess".pluralize(completion.attempt_count) %></p>
+                  <% end %>
                   <%= number_field_tag "activity_grades[#{student.id}][#{activity.id}][score]",
                     completion&.score, min: 0, max: 100, step: 0.01,
                     aria: { label: "#{student.full_name} #{activity.title} grade" } %>

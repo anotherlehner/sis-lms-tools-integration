@@ -5,6 +5,7 @@ class Activity < ApplicationRecord
 
   belongs_to :course
   has_many :activity_completions, dependent: :destroy
+  has_many :lti_launches, dependent: :delete_all
 
   after_create :initialize_student_completions
 
@@ -13,6 +14,10 @@ class Activity < ApplicationRecord
 
   def custom_content?
     activity_type == "custom_content"
+  end
+
+  def tool?
+    activity_type == "tool"
   end
 
   private

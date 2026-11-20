@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_19_180002) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_20_150001) do
   create_table "activities", force: :cascade do |t|
     t.integer "course_id", null: false
     t.string "title", null: false
@@ -33,10 +33,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_180002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "one_roster_sourced_id"
+    t.integer "attempt_count"
     t.index ["activity_id", "user_id"], name: "index_activity_completions_on_activity_id_and_user_id", unique: true
     t.index ["activity_id"], name: "index_activity_completions_on_activity_id"
     t.index ["one_roster_sourced_id"], name: "index_activity_completions_on_one_roster_sourced_id", unique: true
     t.index ["user_id"], name: "index_activity_completions_on_user_id"
+    t.check_constraint "attempt_count IS NULL OR attempt_count > 0", name: "activity_completion_attempt_count_valid"
     t.check_constraint "score IS NULL OR (score >= 0 AND score <= 100)", name: "activity_completion_score_valid"
   end
 
@@ -61,6 +63,33 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_180002) do
     t.index ["section_id", "user_id"], name: "index_enrollments_on_section_id_and_user_id", unique: true
     t.index ["section_id"], name: "index_enrollments_on_section_id"
     t.index ["user_id"], name: "index_enrollments_on_user_id"
+  end
+
+  create_table "lti_access_tokens", force: :cascade do |t|
+    t.string "token_digest", null: false
+    t.string "assertion_jti", null: false
+    t.string "client_id", null: false
+    t.string "scope", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assertion_jti"], name: "index_lti_access_tokens_on_assertion_jti", unique: true
+    t.index ["token_digest"], name: "index_lti_access_tokens_on_token_digest", unique: true
+  end
+
+  create_table "lti_launches", force: :cascade do |t|
+    t.integer "activity_id", null: false
+    t.integer "section_id", null: false
+    t.integer "user_id", null: false
+    t.string "login_hint_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["activity_id"], name: "index_lti_launches_on_activity_id"
+    t.index ["login_hint_digest"], name: "index_lti_launches_on_login_hint_digest", unique: true
+    t.index ["section_id"], name: "index_lti_launches_on_section_id"
+    t.index ["user_id"], name: "index_lti_launches_on_user_id"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -141,6 +170,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_180002) do
   add_foreign_key "activity_completions", "users"
   add_foreign_key "enrollments", "sections"
   add_foreign_key "enrollments", "users"
+  add_foreign_key "lti_launches", "activities"
+  add_foreign_key "lti_launches", "sections"
+  add_foreign_key "lti_launches", "users"
   add_foreign_key "section_grades", "sections"
   add_foreign_key "section_grades", "users"
   add_foreign_key "sections", "courses"
