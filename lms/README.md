@@ -6,7 +6,7 @@ A very simple learning management system for local development and education.
 
 ## Requirements
 
-- Ruby 3.2.3
+- Ruby 4.0.8 (the configured version; Gemfiles require Ruby >= 3.2.3)
 - Bundler
 - Rails 7.1.6 (Rails `~> 7.1.6`)
 - SQLite

@@ -18,6 +18,8 @@ This is an educational local-development application. It uses plain-text passwor
 
 ## Setup
 
+Ruby 4.0.8 is the configured version; the Gemfile accepts Ruby 3.2.3 or later.
+
 From this folder:
 
 ```sh

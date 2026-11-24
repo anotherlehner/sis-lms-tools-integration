@@ -4,9 +4,10 @@ This is an example project for demonstrating the most basic functionality and in
 
 ## Run the applications
 
-From the repository root, use `./dev` to start, stop, reset, or test the LMS, SIS, and Acme tool:
+From the repository root, use `./dev` to set up, start, stop, reset, or test the LMS, SIS, and Acme tool:
 
 ```sh
+./dev setup          # Install dependencies and prepare databases for all applications
 ./dev start          # Start all applications
 ./dev stop           # Stop all applications
 ./dev reset          # Stop all, reset the LMS/SIS databases, and restart
@@ -20,7 +21,7 @@ From the repository root, use `./dev` to start, stop, reset, or test the LMS, SI
 ./dev test acme      # Run tests for only the Acme tool
 ```
 
-The LMS runs at [http://127.0.0.1:3000](http://127.0.0.1:3000), the SIS at [http://127.0.0.1:3001](http://127.0.0.1:3001), and the Acme tool at [http://127.0.0.1:3002](http://127.0.0.1:3002). Initialize each app's database once using its README, and install each app's dependencies before starting it; the tool's dependencies are installed with `cd tools/acme && bundle install`. Starting either the LMS or Acme generates local-only LTI signing keys under the ignored `.local/lti/` directory. Starting the LMS applies pending LMS migrations and restarts its managed server if the database schema changed. The reset action deletes existing LMS/SIS development database data and reloads their seed data. Server output is written to each app's `log/root-dev-server.log`.
+The LMS runs at [http://127.0.0.1:3000](http://127.0.0.1:3000), the SIS at [http://127.0.0.1:3001](http://127.0.0.1:3001), and the Acme tool at [http://127.0.0.1:3002](http://127.0.0.1:3002). The project is configured for Ruby 4.0.8, and the app Gemfiles accept Ruby 3.2.3 or later. Run `./dev setup` on a new checkout to check for the required tools, install dependencies in all app folders, and prepare the LMS/SIS databases. Setup is safe to run again after updates; it applies pending database migrations without resetting existing data. You can limit setup to one app with `./dev setup lms`, `./dev setup sis`, or `./dev setup acme`. Starting either the LMS or Acme generates local-only LTI signing keys under the ignored `.local/lti/` directory. Starting the LMS applies pending LMS migrations and restarts its managed server if the database schema changed. The reset action deletes existing LMS/SIS development database data and reloads their seed data. Server output is written to each app's `log/root-dev-server.log`.
 
 For the LTI demo, use `./dev start all`, sign into the LMS as `instructor`, open the seeded course section, and add the **Guess the Number** tool. Sign in as `student` and open the activity. The LMS displays the activity in the course page; launching it navigates in the same tab to the separately running Acme app. On completion, the tool submits a 100/100 score to the LMS and returns to the course.
 

@@ -7,7 +7,7 @@ source "$ROOT_DIR/tokens" || exit 1
 
 usage() {
   cat <<'USAGE'
-Usage: ./dev <start|stop|reset|test> [lms|sis|all]
+Usage: ./dev <setup|start|stop|reset|test> [lms|sis|acme|all]
 
 Targets default to all:
   lms  Learning management system (http://127.0.0.1:3000)
@@ -15,6 +15,8 @@ Targets default to all:
   acme Acme Guess the Number tool (http://127.0.0.1:3002)
   all  All applications
 
+Setup checks the required tools, installs each app's bundle, and prepares
+the LMS/SIS databases. Targets default to all.
 Reset stops the selected app(s), resets their development databases, and
 starts them again. The Acme tool has no database to reset. Test runs the
 selected app's test suite.
@@ -320,6 +322,88 @@ test_app() {
   fi
 }
 
+check_setup_prerequisites() {
+  local command_name
+  local ruby_version
+  local expected_version
+  local app
+  local directory
+
+  for command_name in ruby bundle openssl; do
+    if ! command -v "$command_name" >/dev/null 2>&1; then
+      printf 'Required command not found: %s. Install it and run ./dev setup again.\n' "$command_name" >&2
+      return 1
+    fi
+  done
+
+  ruby_version=$(ruby -e 'print RUBY_VERSION') || {
+    printf 'Unable to determine the installed Ruby version.\n' >&2
+    return 1
+  }
+  for app in lms sis acme; do
+    directory=$(app_dir "$app")
+    expected_version=$(awk -F'"' '/^ruby "/ {print $2; exit}' "$directory/Gemfile")
+    if [ -z "$expected_version" ]; then
+      printf 'Unable to determine the Ruby version requirement from %s/Gemfile.\n' "$app" >&2
+      return 1
+    fi
+    if ! ruby -rrubygems -e \
+      'exit Gem::Requirement.new(ARGV[0]).satisfied_by?(Gem::Version.new(ARGV[1])) ? 0 : 1' \
+      "$expected_version" "$ruby_version"; then
+      printf '%s requires Ruby %s; found Ruby %s. Switch Ruby versions and run ./dev setup again.\n' \
+        "$app" "$expected_version" "$ruby_version" >&2
+      return 1
+    fi
+  done
+  printf 'Required tools found (Ruby %s satisfies all app requirements, Bundler, OpenSSL).\n' "$ruby_version"
+}
+
+setup_app() {
+  local app=$1
+  local directory
+  local user_gem_home
+
+  directory=$(app_dir "$app")
+  printf '\n== Installing %s dependencies ==\n' "$app"
+  if ruby -rrubygems -e '
+    plugins_dir = File.join(Gem.dir, "plugins")
+    exit(File.writable?(plugins_dir) && Dir.glob(File.join(plugins_dir, "*.rb")).all? { |plugin| File.writable?(plugin) } ? 0 : 1)
+  '; then
+    if ! (cd -- "$directory" && bundle install); then
+      printf 'Dependency installation failed for %s.\n' "$app" >&2
+      return 1
+    fi
+  else
+    user_gem_home=$(ruby -rrubygems -e 'print Gem.user_dir') || {
+      printf 'Unable to determine the user Ruby gem directory.\n' >&2
+      return 1
+    }
+    printf 'RubyGems plugin directory is not writable; installing dependencies in %s.\n' "$user_gem_home"
+    if ! (cd -- "$directory" && GEM_HOME="$user_gem_home" bundle install); then
+      printf 'Dependency installation failed for %s.\n' "$app" >&2
+      return 1
+    fi
+  fi
+
+  if [ "$app" = acme ]; then
+    if ! (cd -- "$directory" && bundle exec puma --version); then
+      printf 'Unable to verify Acme dependencies.\n' >&2
+      return 1
+    fi
+    return 0
+  fi
+
+  if ! (cd -- "$directory" && bin/rails --version); then
+    printf 'Rails is unavailable for %s after installing its dependencies.\n' "$app" >&2
+    return 1
+  fi
+  printf '== Preparing %s database ==\n' "$app"
+  if ! (cd -- "$directory" && bin/rails db:prepare); then
+    printf 'Database preparation failed for %s.\n' "$app" >&2
+    return 1
+  fi
+}
+
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
   usage >&2
   exit 2
@@ -328,7 +412,7 @@ fi
 action=$1
 target=${2:-all}
 case "$action" in
-  start|stop|reset|test) ;;
+  setup|start|stop|reset|test) ;;
   *)
     usage >&2
     exit 2
@@ -345,6 +429,14 @@ case "$target" in
 esac
 
 case "$action" in
+  setup)
+    check_setup_prerequisites || exit 1
+    status=0
+    for app in "${apps[@]}"; do
+      setup_app "$app" || status=1
+    done
+    exit "$status"
+    ;;
   start)
     if [[ " ${apps[*]} " == *" lms "* || " ${apps[*]} " == *" acme "* ]]; then
       ensure_lti_keys || exit 1
